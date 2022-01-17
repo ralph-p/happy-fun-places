@@ -1,9 +1,10 @@
-package com.ralph.happyfunplaces
+package com.ralph.happyfunplaces.activities
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.ralph.happyfunplaces.R
 
 class MainActivity : AppCompatActivity() {
     lateinit var setOnHappyPlace: FloatingActionButton
