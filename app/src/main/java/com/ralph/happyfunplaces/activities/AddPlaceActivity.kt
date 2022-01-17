@@ -16,6 +16,7 @@ import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.AppCompatEditText
@@ -31,6 +32,8 @@ import com.karumi.dexter.listener.PermissionRequest
 
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import com.ralph.happyfunplaces.R
+import com.ralph.happyfunplaces.database.DatabaseHandler
+import com.ralph.happyfunplaces.models.HappyPlaceModel
 import java.io.*
 
 
@@ -40,6 +43,9 @@ class AddPlaceActivity : AppCompatActivity(), View.OnClickListener {
     lateinit var addImageButton: TextView
     lateinit var placeImage: AppCompatImageView
     lateinit var saveButton: Button
+    lateinit var title: EditText
+    lateinit var description: EditText
+    lateinit var location: EditText
     private var cal = Calendar.getInstance()
     private lateinit var dateSitListener: DatePickerDialog.OnDateSetListener
 
@@ -55,6 +61,10 @@ class AddPlaceActivity : AppCompatActivity(), View.OnClickListener {
         addImageButton = findViewById(R.id.tv_add_image)
         placeImage = findViewById(R.id.iv_place_image)
         saveButton = findViewById(R.id.btn_save)
+        title = findViewById(R.id.et_title)
+        description = findViewById(R.id.et_description)
+        location = findViewById(R.id.et_location)
+
         setSupportActionBar(addToolBar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         addToolBar.setNavigationOnClickListener {
@@ -66,6 +76,7 @@ class AddPlaceActivity : AppCompatActivity(), View.OnClickListener {
             cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
             updateDateInView()
         }
+        updateDateInView()
         dateSelector.setOnClickListener(this)
         addImageButton.setOnClickListener(this)
         saveButton.setOnClickListener(this)
@@ -97,6 +108,58 @@ class AddPlaceActivity : AppCompatActivity(), View.OnClickListener {
             }
             R.id.btn_save -> {
                 // Store the Datamodel to the database
+                when {
+                    title.text.isNullOrEmpty() -> {
+                        Toast.makeText(
+                            this@AddPlaceActivity,
+                            "Please Enter a title",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    description.text.isNullOrEmpty() -> {
+                        Toast.makeText(
+                            this@AddPlaceActivity,
+                            "Please Enter a description",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    location.text.isNullOrEmpty() -> {
+                        Toast.makeText(
+                            this@AddPlaceActivity,
+                            "Please Enter a location",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    saveImageToInternalStorage == null -> {
+                        Toast.makeText(
+                            this@AddPlaceActivity,
+                            "Please select an image",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    else -> {
+                        val happyPlaceModel = HappyPlaceModel(
+                            0,
+                            title.text.toString(),
+                            saveImageToInternalStorage.toString(),
+                            description.text.toString(),
+                            dateSelector.text.toString(),
+                            location.text.toString(),
+                            mLat,
+                            mLong
+                        )
+                        val dbHandler = DatabaseHandler(this)
+                        val addHappyPlaceResult = dbHandler.addHappyPlace(happyPlaceModel)
+                        if (addHappyPlaceResult > 0) {
+                            Toast.makeText(
+                                this@AddPlaceActivity,
+                                "Place details have been stored",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            finish()
+                        }
+                    }
+                }
             }
         }
     }
@@ -121,8 +184,7 @@ class AddPlaceActivity : AppCompatActivity(), View.OnClickListener {
                         ).show()
                     }
                 }
-            }
-            else if(requestCode == CAMERA) {
+            } else if (requestCode == CAMERA) {
                 val thumbnail: Bitmap = data!!.extras!!.get("data") as Bitmap
                 saveImageToInternalStorage = saveImageToInternalStorage(thumbnail)
                 placeImage.setImageBitmap(thumbnail)
@@ -143,6 +205,7 @@ class AddPlaceActivity : AppCompatActivity(), View.OnClickListener {
                     startActivityForResult(galleryIntent, CAMERA)
                 }
             }
+
             override fun onPermissionRationaleShouldBeShown(
                 permissions: MutableList<PermissionRequest?>?,
                 token: PermissionToken?
@@ -164,6 +227,7 @@ class AddPlaceActivity : AppCompatActivity(), View.OnClickListener {
                     startActivityForResult(galleryIntent, GALLERY)
                 }
             }
+
             override fun onPermissionRationaleShouldBeShown(
                 permissions: MutableList<PermissionRequest?>?,
                 token: PermissionToken?
@@ -196,7 +260,7 @@ class AddPlaceActivity : AppCompatActivity(), View.OnClickListener {
         dateSelector.setText(sdf.format(cal.time).toString())
     }
 
-    private fun saveImageToInternalStorage(bitmap: Bitmap): Uri{
+    private fun saveImageToInternalStorage(bitmap: Bitmap): Uri {
         val wrapper = ContextWrapper(applicationContext)
         var file = wrapper.getDir(IMAGE_DIRECTORY, Context.MODE_PRIVATE)
         file = File(file, "${UUID.randomUUID()}.jpg")
